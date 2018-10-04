@@ -324,7 +324,7 @@ class: middle, inverse
 
 class: middle
 
-.emph_blue[Analytically:]<br>
+.emph_dark[Analytically:]<br>
 .emph_blue[Estimating the]<br>
 .emph_blue[Bias of a coin]
 
@@ -510,17 +510,37 @@ class: middle
 
 ---
 
+class: middle
+
+.emph_blue[What prior]<br>
+.emph_blue[to use?]
+
+---
 
 class: middle
 
-.emph_blue[Computationally]
+.emph_blue[Normalising]
+
+---
+
+class: middle
+
+.emph_dark[Computationally:]<br>
+.emph_blue[First Steps]
 ---
 
 grid search explanation, include a illustrative graph
 
 ---
 
-MCMC introduction
+Inefficiencies, including the curse of dimensionality, therefore need a better way to choose where to look
+
+---
+
+class: middle
+
+.emph_dark[Computationally:]<br>
+.emph_blue[MCMC]
 
 ---
 
@@ -536,17 +556,14 @@ Why you don't want to roll your own sampler
 - pros and cons of each
 - Mention Gibbs sampling and HMC
 
----
 
-Running an MCMC analysis -  reproduce the coin example in JAGS or Stan
 
 ---
 
-Interpreting the results
+class: middle
 
-- i.e. autocorrelation
-- effective steps
-- PPCs
+.emph_dark[Computationally:]<br>
+.emph_blue[In practice]
 
 ---
 
@@ -573,5 +590,5 @@ Quick recap on triangle based models in general insurance
 ---
 
 
-Reproduce Gessman's work in a Bayesian way
+Reproduce Gesmann's work in a Bayesian way
 https://magesblog.com/post/2015-11-10-hierarchical-loss-reserving-with-stan/
