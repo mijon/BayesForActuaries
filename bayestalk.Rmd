@@ -194,7 +194,7 @@ class: middle
 class: middle
 
 .emph_blue[It's]<br>
-.emph_blue[unwiedldy]
+.emph_blue[unwiedly]
 
 ???
 
