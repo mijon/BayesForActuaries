@@ -1,0 +1,577 @@
+---
+title: "Modern Bayesian Techniques for Actuaries"
+subtitle: ""
+author: "Michael Jones"
+date: "10 October 2018"
+output:
+  xaringan::moon_reader:
+    css: "presentation.css"
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+library(ggplot2)
+library(dplyr)
+library(svglite)
+library(magrittr)
+library(tidyr)
+
+knitr::opts_chunk$set(
+  dev = "svglite",
+  fig.ext = ".svg"
+)
+```
+class: center, inverse, middle
+
+
+.emph_light[Actuaries]<br>
+.emph_dark[should be]<br>
+.emph_light[scientific]<br>
+
+---
+
+class: center, inverse, middle
+
+
+.emph_light[Actuaries]<br>
+.emph_dark[should be]<br>
+.emph_light[Bayesian]<br>
+
+---
+
+class: center, middle
+
+.emph_blue[What?]
+
+---
+
+class: center, middle
+
+.emph_blue[Why?]
+
+---
+
+class: center, middle
+
+.emph_blue[How?]
+
+---
+
+class: middle, inverse
+
+.emph_dark[Bayesian]<br>
+.emph_dark[Recap]
+
+---
+class: middle, center
+
+<span style="font-size:600%">
+$$P(\theta | D) = \frac{P(D|\theta)P(\theta)}{\int d\theta' P(D|\theta')P(\theta')}$$
+</span>
+
+---
+class: middle, center
+
+<span style="font-size:600%">
+$$\color{lightgrey}{P(\theta | D) = \frac{P(D|\theta)\color{black}{P(\theta)}}{\int d\theta' P(D|\theta')P(\theta')}}$$
+</span>
+---
+class: middle, center
+
+<span style="font-size:600%">
+$$\color{lightgrey}{P(\theta | D) = \frac{\color{black}{P(D|\theta)}{P(\theta)}}{\int d\theta' P(D|\theta')P(\theta')}}$$
+</span>
+
+---
+
+class: middle, center
+
+<span style="font-size:600%">
+$$\color{lightgrey}{\color{black}{P(\theta | D)} = \frac{P(D|\theta){P(\theta)}}{\int d\theta' P(D|\theta')P(\theta')}}$$
+</span>
+
+---
+
+class: middle, center
+
+<span style="font-size:600%">
+$$\color{lightgrey}{P(\theta | D) = \frac{P(D|\theta){P(\theta)}}{\color{black}{\int d\theta' P(D|\theta')P(\theta')}}}$$
+</span>
+
+---
+
+
+
+class: middle, inverse
+
+.emph_dark[Why be]<br>
+.emph_dark[Bayesian]
+
+
+---
+
+class: middle
+
+.emph_blue[It works]
+
+???
+
+It produces results that are testable and given the right models generally are as good (sometimes better) than frequentist analysis.
+
+---
+
+class: middle
+
+.emph_blue[It's coherent]
+
+???
+
+Most Bayesian analysis stems from a few foundational ideas compared to frequentist statistics which has a much more varied set of fundamentals.
+
+Posterior information is rich and useful
+
+---
+class: middle
+
+.emph_blue[It's natural]
+
+???
+
+Humans naturally think in Bayesian terms which are then 'unlearned' when studying frequentist analysis. 
+
+
+---
+
+class: middle
+
+.emph_blue[It's self]<br>
+.emph_blue[Documenting]
+
+???
+
+Through the priors, assumptions are formally absorbed into the analysis and cannot be hidden as in classical statistics.
+
+---
+
+class: middle
+
+.emph_blue[You get the]<br>
+.emph_blue[full Posterior]
+
+
+---
+
+class: middle
+
+.emph_blue[It's modular]
+
+
+???
+
+Multilevel models, choice of priors, e.g. simple to make robust to outliers
+
+
+---
+
+class: middle, inverse
+
+.emph_dark[Why ] .emph_light[not ] .emph_dark[be]<br>
+.emph_dark[Bayesian]
+
+---
+class: middle
+
+.emph_blue[What]<br>
+.emph_blue[prior?]
+
+---
+
+class: middle
+
+.emph_blue[It's]<br>
+.emph_blue[unwiedldy]
+
+???
+
+A whole posterior distribution can be difficult to communicate/process
+
+---
+
+class: middle
+
+.emph_blue[It's]<br>
+.emph_blue[hard]
+
+???
+
+ok if conjugate pairs, but otherwise, it's difficult to do without MCMC or other computationally intensive programs.
+
+
+
+
+---
+
+class: middle, inverse
+
+.emph_light[Frequentism]<br>
+.emph_dark[vs]<br>
+.emph_light[Bayesianism]
+
+---
+class: middle
+
+.emph_blue[Data]
+
+
+---
+class: middle
+
+.emph_blue[Parameters]
+
+
+---
+
+class: middle
+
+.emph_blue[Ranges]
+
+---
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=2}
+# From https://freakonometrics.hypotheses.org/18117
+set.seed(200)
+xbar <- 150
+n <- 1000
+ns <- 100
+M <- matrix(rbinom(n*ns, size=1, prob=xbar/n),
+            nrow=n)
+
+fIC <- function(x) {
+  mean(x) + c(-1,1)*1.96*sqrt(mean(x)*(1-mean(x)))/sqrt(n)
+}
+
+IC <- t(apply(M,2,fIC))
+MN <- apply(M,2,mean)
+
+k <- (xbar/n<IC[,1])|(xbar/n>IC[,2])
+#plot(MN, 1:ns, xlim=range(IC), axes=FALSE,
+#     xlab='', ylab='', pch=19, cex=.7,
+#     col=c('blue','red')[1+k])
+#axis(1)
+#segments(IC[,1],1:ns,IC[,2],1:ns,
+#         col=c('blue','red')[1+k])
+#abline(v=xbar/n)
+
+to_plot <- data.frame(MN, left=IC[,1], right=IC[,2],k, y=1:ns)
+
+s1 <- svgstring(standalone = FALSE)
+ggplot(to_plot) +
+  geom_point(aes(MN, y, col=k)) +
+  geom_errorbarh(aes(xmin=left, xmax=right, y=y, colour=k), height=0) +
+  geom_vline(xintercept=xbar/n) +
+  scale_y_continuous('') +
+  ggtitle('Frequentist Confidence Intervals', subtitle='100 draws from a Binomial with mean 15') +
+  scale_x_continuous('') +
+  theme_minimal() +
+  theme(legend.position = 'none',
+        axis.text.y = element_blank())
+
+htmltools::HTML(s1())
+invisible(dev.off())
+```
+
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+u <-  seq(.1, .2, length=501)
+v <- dbeta(u, 1+xbar, 1+n-xbar)
+I <- u<qbeta(.025, 1+xbar, 1+n-xbar)
+
+pk <- rbeta(ns, 1+xbar, 1+n-xbar)
+
+M <- matrix(rbinom(n*ns,size=1,prob=rep(pk,
+each=n)),nrow=n)
+MN <- apply(M,2,mean)
+
+```
+
+Bayesian intervals
+
+---
+
+class: middle
+
+.emph_blue[p-values &]<br>
+.emph_blue[significance]<br>
+.emph_blue[testing]
+
+
+
+---
+
+class: middle, inverse
+
+.emph_dark[How to be]<br>
+.emph_dark[Bayesian]
+
+---
+
+class: middle
+
+.emph_blue[Analytically:]<br>
+.emph_blue[Estimating the]<br>
+.emph_blue[Bias of a coin]
+
+---
+
+##Parameter
+
+<span style="font-size:200%">
+$$\theta = P(y_i = \text{heads})$$
+</span>
+
+---
+
+## Likelihood
+
+
+### Bernoulli:
+
+<span style="font-size:200%">
+$$ p(y|\theta) = \theta^y(1 - \theta)^{(1-y)}$$
+</span>
+
+---
+
+## Prior
+### Beta
+<span style="font-size:200%">
+$$\begin{align}
+  P(\theta|a,b) &= \text{beta}(a,b)\\\\
+  &=\frac{\theta^{(a-1)}(1-\theta)^{(b-1)}}{B(a,b)}
+  \end{align}$$
+</span>
+
+---
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=12, fig.height=9, dpi=600}
+a_vals <- c(0.1,1,2,3,4,20)
+b_vals <- c(0.1,1,2,3,4,20)
+theta_vals <- seq(0,1,0.01)
+
+theta <- rep(theta_vals, length(a_vals) * length(b_vals))
+a <- rep(a_vals, each = length(b_vals) * length(theta_vals))
+b <- rep(rep(b_vals, each = length(theta_vals)), length(a_vals))
+
+plot_data <- data.frame(a,b,theta)
+plot_data <- mutate(plot_data, y=dbeta(theta, a, b))
+
+
+s <- svgstring(standalone=FALSE)
+ggplot(plot_data, aes(theta, y)) +
+  geom_line() +
+  facet_wrap(b~a, scales='free_y',labeller=label_wrap_gen(multi_line=FALSE)) +
+  scale_x_continuous('θ', breaks=c(0,0.25,0.5,0.75,1)) + 
+  theme_bw() +
+  theme(axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+htmltools::HTML(s())
+
+
+```
+
+
+---
+## Posterior
+### Another Beta
+
+<span style="font-size:200%">
+$$\begin{align}
+  P(\theta|n_{heads},n_{tails},a,b) &= \text{beta}(a+n_{heads},b+n_{tails})\\\\
+  &=\frac{\theta^{(a+n_{heads}-1)}(1-\theta)^{(b+n_{tails}-1)}}{B(a+n_{heads},b+n_{tails})}
+  \end{align}$$
+</span>
+
+---
+
+# Live demo time:
+
+https://mjones.shinyapps.io/coin/
+
+.pull-left[
+## If it works
+
+click here
+]
+
+.pull-right[
+## If it doesn't work
+
+click here (39)
+]
+
+---
+
+# No idea about the coin
+Flat $\text{beta}(1,1)$ distribution:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=1, fig.width=2}
+theta <- seq(0,1,0.1)
+df <- data.frame(theta, y=dbeta(theta, 1, 1))
+
+s <- svgstring(standalone=FALSE, height=5)
+ggplot(df, aes(theta, y)) + 
+  geom_line() +
+  theme_bw() +
+  scale_x_continuous('θ') +
+  scale_y_continuous('Prior')
+htmltools::HTML(s())
+```
+
+---
+
+# Collect some data
+
+7 Heads, 5 tails:
+
+```{r echo=FALSE}
+theta <- seq(0,1,0.01)
+likelihood <- theta^7 * (1 - theta) ^5
+
+s <- svgstring(standalone = FALSE, height=5)
+df <- data.frame(theta, likelihood)
+ggplot(df, aes(theta, likelihood)) +
+  geom_line() +
+  theme_bw()
+htmltools::HTML(s())
+
+```
+
+---
+# Posterior
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+theta <- seq(0,1,0.01)
+posterior <- theta^8 * (1 - theta) ^6
+
+s <- svgstring(standalone = FALSE, height=5)
+df <- data.frame(theta, posterior)
+ggplot(df, aes(theta, posterior)) +
+  geom_line() +
+  theme_bw()
+htmltools::HTML(s())
+```
+---
+
+# Strong Prior
+
+```{r echo=FALSE}
+a <- 2
+b <- 20
+n_heads <- 7
+n_tails <- 5
+
+data <- data.frame(theta=seq(0,1,0.001))
+data %<>% mutate(prior=dbeta(theta, shape1=a, shape2=b),
+                 likelihood=theta^n_heads * (1 - theta) ^n_tails,
+                 posterior=dbeta(theta, shape1=a+n_heads, shape2=b+n_tails))
+
+data %<>% gather(type,y, prior, likelihood, posterior) %>%
+  mutate(type = ordered(type, levels=c('prior','likelihood','posterior')))
+
+s <- svgstring(standalone=FALSE, height=5)
+ggplot(data, aes(theta, y)) +
+  geom_line() +
+  facet_grid(type~., scales='free_y') +
+  theme_bw()
+htmltools::HTML(s())
+```
+
+---
+
+class: middle
+
+.emph_blue[Problems]
+
+???
+
+- Conjugate priors
+- calculating the normalisation integral
+
+---
+
+
+class: middle
+
+.emph_blue[Computationally]
+---
+
+grid search explanation, include a illustrative graph
+
+---
+
+MCMC introduction
+
+---
+
+Metropolis Politician island example to be fleshed out over a few slides.
+
+---
+
+Why you don't want to roll your own sampler
+
+---
+
+- BUGS JAGS and Stan
+- pros and cons of each
+- Mention Gibbs sampling and HMC
+
+---
+
+Running an MCMC analysis -  reproduce the coin example in JAGS or Stan
+
+---
+
+Interpreting the results
+
+- i.e. autocorrelation
+- effective steps
+- PPCs
+
+---
+
+Linear Regression in a Bayesian Context
+
+
+---
+
+
+class: middle, inverse
+
+.emph_dark[Bayesianism]<br>
+.emph_dark[applied to]<br>
+.emph_dark[Insurance]
+
+---
+
+Hierarchical models?
+
+---
+
+Quick recap on triangle based models in general insurance
+
+---
+
+
+Reproduce Gessman's work in a Bayesian way
+https://magesblog.com/post/2015-11-10-hierarchical-loss-reserving-with-stan/
