@@ -25,6 +25,9 @@ knitr::opts_chunk$set(
   dev = "svglite",
   fig.ext = ".svg"
 )
+
+nruns <- 1000000 # metropolis example run numbers, increase at final compilation.
+
 ```
 class: center, inverse, middle
 
@@ -529,13 +532,95 @@ class: middle
 .emph_blue[First Steps]
 ---
 
-grid search explanation, include a illustrative graph
+```{r echo=FALSE}
+x <- seq(0,1,0.01)
+grid_beta_a <- 3
+grid_beta_b <- 6
+y <- dbeta(x, grid_beta_a, grid_beta_b)
+grid_plot_df <- data.frame(x,y)
+
+grid_plot <- ggplot() + geom_line(data=grid_plot_df, aes(x,y)) + theme_bw()
+
+s <- svgstring(standalone = FALSE)
+grid_plot
+htmltools::HTML(s())
+
+```
+---
+
+```{r echo=FALSE}
+x_grid <- seq(0,1,0.1)
+y_grid_base <- rep(0,length(x_grid))
+
+grid_base_df <- data.frame(x_grid, y_grid_base)
+
+grid_plot <- grid_plot + geom_point(data=grid_base_df, aes(x_grid, y_grid_base))
+
+s <- svgstring(standalone = FALSE)
+grid_plot
+htmltools::HTML(s())
+```
+---
+```{r echo=FALSE}
+y_grid_tops <- dbeta(x_grid, grid_beta_a, grid_beta_b) / 1.4
+
+grid_base_df$y_grid_tops <- y_grid_tops
+
+grid_plot <- ggplot() + geom_line(data=grid_plot_df, aes(x,y), colour='grey') +
+  geom_point(data=grid_base_df, aes(x_grid, y_grid_base)) +
+  geom_point(data=grid_base_df, aes(x_grid, y_grid_tops)) +
+  geom_segment(data = grid_base_df, aes(x=x_grid, y=y_grid_base, xend=x_grid, yend=y_grid_tops)) +
+  theme_bw()
+
+s <- svgstring(standalone = FALSE)
+grid_plot
+htmltools::HTML(s())
+```
+---
+```{r echo=FALSE}
+y_grid_tops <- dbeta(x_grid, grid_beta_a, grid_beta_b)
+
+grid_base_df$y_grid_tops <- y_grid_tops
+
+grid_plot <- ggplot() + geom_line(data=grid_plot_df, aes(x,y), colour='grey') +
+  geom_point(data=grid_base_df, aes(x_grid, y_grid_base)) +
+  geom_point(data=grid_base_df, aes(x_grid, y_grid_tops)) +
+  geom_segment(data = grid_base_df, aes(x=x_grid, y=y_grid_base, xend=x_grid, yend=y_grid_tops)) +
+  theme_bw()
+
+s <- svgstring(standalone = FALSE)
+grid_plot
+htmltools::HTML(s())
+
+```
+
 
 ---
 
-Inefficiencies, including the curse of dimensionality, therefore need a better way to choose where to look
+```{r echo=FALSE}
+x <- seq(0,1,0.001)
+grid_beta_a <- 300
+grid_beta_b <- 600
+y <- dbeta(x, grid_beta_a, grid_beta_b)
+grid_plot_df <- data.frame(x,y)
+
+grid_plot <- ggplot() + geom_line(data=grid_plot_df, aes(x,y)) + 
+  geom_point(data=grid_base_df, aes(x_grid, y_grid_base))+
+  theme_bw()
+
+s <- svgstring(standalone = FALSE)
+grid_plot
+htmltools::HTML(s())
+
+```
+
+???
+
+- If the posterior is narrower, you waste a lot of time/computing power calculating the posterior in places which do not matter
+- Not only that, but as your dimensions increase (i.e. number of parameters), the number of points increases exponentially.
 
 ---
+
 
 class: middle
 
@@ -544,7 +629,193 @@ class: middle
 
 ---
 
-Metropolis Politician island example to be fleshed out over a few slides.
+class:middle
+
+.emph_blue[Markov Chain]<br>
+.emph_blue[Monte Carlo]
+---
+
+class: middle
+
+.emph_dark[Markov Chain]<br>
+.emph_blue[Monte Carlo]
+
+---
+
+class: middle
+
+.emph_blue[Markov Chain]<br>
+.emph_dark[Monte Carlo]
+
+---
+
+gif of MCMC on 2 dimensions?
+
+---
+
+
+class: middle
+
+.emph_blue[Metropolis]
+
+
+---
+
+# Metropolis Algorithm
+
+--
+
+- Choose a candidate jump location
+
+--
+
+- Sample the candidate
+
+--
+
+- If candidate is larger than current, go to candidate
+
+--
+
+- If candidate is smaller than current, go to candidate with some probability
+
+---
+# Metropolis Algorithm Example
+
+- 50 Islands
+
+--
+
+- Populations in ratio 1:2:3:...:50
+
+--
+
+- Want to visit each in accordance with its population
+
+
+
+---
+
+```{r metropolis_sim, include=FALSE}
+n_islands <- 50
+islands <- c(0,1:n_islands,0)
+island_density <- islands / sum(islands)
+
+starting_pos <- 2
+print(starting_pos)
+
+visited = vector(length=nruns)
+
+decide_candidate <- function(current_pos) {
+  if (runif(1) < 0.5) {
+    return(current_pos - 1)
+  } else {
+    return(current_pos + 1)
+  }
+}
+
+
+decide_to_move <- function(current_pos, candidate) {
+  #print(paste('current position: ', current_pos, ' population: ', islands[current_pos], sep=''))
+  #print(paste('candidate: ', candidate, ' population: ', islands[candidate], sep=''))
+  if (islands[candidate] > islands[current_pos]) {
+    return(TRUE)
+  } else {
+    if (runif(1) < islands[candidate] / islands[current_pos]) {
+      return(TRUE)
+    } else {
+      return(FALSE)
+    }
+  }
+}
+
+jump <- function(current_pos) {
+  candidate <- decide_candidate(current_pos)
+  
+  if (decide_to_move(current_pos, candidate)) {
+    return(candidate)
+  } else {
+    return(current_pos)
+  }
+}
+
+# run the sim
+# initialise
+visited[1] <- starting_pos
+
+
+for (i in 2:nruns) {
+  visited[i] = jump(visited[i-1])
+}
+
+# re label the islands 1:7
+visited <- visited - 1
+
+freq_table <- function(visited) {
+  #df <- as.data.frame(table(visited))
+  df <- data.frame(visited = 2:(length(islands) - 1))
+  
+  Freq <- vector(length=length(df$visited))
+  for (i in 1:length(Freq)) {
+    Freq[i] <- sum(visited == df$visited[i])
+  }
+  df$Freq <- Freq
+  
+  df <- mutate(df, density = Freq/sum(Freq))
+  
+  return(df)
+}
+
+
+```
+
+```{r echo=FALSE}
+df <- data.frame(index=1:length(visited), visited=visited)
+
+
+#ggplot(df, aes(index, visited)) + geom_line() +  scale_x_log10()
+df %<>% mutate(slice = ifelse(index < 500, 'beginning', ifelse(index > max(index) - 500, 'end','other'))) %>% filter(slice != 'other')
+
+s <- svgstring(standalone = FALSE)
+ggplot(df, aes(index, visited)) + geom_line() + facet_wrap(~slice, scales='free_x') + theme_bw()
+htmltools::HTML(s())
+```
+
+---
+
+```{r echo=FALSE}
+frequency_matrix <- function(visited, stages, candidates) {
+  results <- matrix(nrow=length(candidates), ncol=length(stages))
+  for (i in seq_along(stages)) {
+    results[,i] <-freq_dist(visited[1:stages[i]], candidates)
+  }
+  
+  colnames(results) <- stages
+  results <- as.data.frame(results)
+  results$island <- candidates
+  results <- gather(results, stage, value, -island)
+  results$stage <- factor(results$stage, levels=ordered(stages))
+  return(results)
+}
+
+
+freq_dist <- function(visited, candidates) {
+  frequencies <- vector(length=length(candidates))
+  for (i in seq_along(candidates)) {
+    frequencies[i] <- sum(visited == candidates[i])
+  }
+  return(frequencies/sum(frequencies))
+}
+
+candidates <- 1:n_islands
+stages <- c(1, 10, 20, 100, 200, 300, 1000, 10000, nruns)
+islands_frequencies <- frequency_matrix(visited, stages, candidates)
+
+s <- svgstring(standalone = FALSE)
+ggplot(islands_frequencies) + geom_col(aes(island, value)) + facet_wrap(~stage, scales='free_y') + theme_bw()
+htmltools::HTML(s())
+```
+
 
 ---
 
@@ -567,11 +838,76 @@ class: middle
 
 ---
 
-Linear Regression in a Bayesian Context
+# Linear Regression 
 
+<span style="font-size:200%">
+$$\begin{align}
+y &= \beta_0 + \beta_1 x +\epsilon\\
+\epsilon &\sim \mathcal{N}(0, \sigma^2)
+\end{align}$$
+</span>
+--
+
+<span style="font-size:200%">
+$$y \sim \mathcal{N}(\beta_0 + \beta_1 x, \sigma^2)$$
+</span>
+---
+
+```{r echo=FALSE}
+# parameters
+npoints <- 100
+outlier_rate <- 0.01
+x_low <- 0
+x_high <-10
+
+beta_0 <- 3
+beta_1 <- 2
+
+# error
+base_sd <- 10
+outlier_sd_multiple <- 3
+
+error <- rnorm(npoints, mean=0, sd=base_sd)
+error[1:round(outlier_rate * npoints)] <- abs(rnorm(round(outlier_rate * npoints), mean=0, sd=outlier_sd_multiple*base_sd))
+
+
+# Fake data generation
+x <- runif(npoints, x_low, x_high)
+y <- beta_0 + beta_1 * x + error
+
+
+data <- data.frame(x,y)
+
+
+linear_plot <-ggplot(data) + geom_point(aes(x,y)) + theme_bw()
+
+s <- svgstring(standalone = FALSE)
+linear_plot
+htmltools::HTML(s())
+
+```
 
 ---
 
+```{r echo=FALSE}
+s <- svgstring(standalone = FALSE)
+linear_plot + geom_smooth(aes(x,y), method='lm', se=FALSE) + geom_abline(slope=beta_1, intercept=beta_0)
+htmltools::HTML(s())
+```
+---
+
+
+
+class: middle, center
+
+
+![](simple_linear_regression.svg)
+
+---
+
+
+
+---
 
 class: middle, inverse
 
