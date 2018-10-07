@@ -224,6 +224,11 @@ class: middle, inverse
 .emph_light[Frequentism]<br>
 .emph_dark[vs]<br>
 .emph_light[Bayesianism]
+---
+
+class: middle
+
+.emph_blue[Probability]
 
 ---
 class: middle
@@ -292,19 +297,32 @@ invisible(dev.off())
 ---
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-u <-  seq(.1, .2, length=501)
-v <- dbeta(u, 1+xbar, 1+n-xbar)
-I <- u<qbeta(.025, 1+xbar, 1+n-xbar)
 
-pk <- rbeta(ns, 1+xbar, 1+n-xbar)
 
-M <- matrix(rbinom(n*ns,size=1,prob=rep(pk,
-each=n)),nrow=n)
-MN <- apply(M,2,mean)
+y <- rbeta(10000, 3,7)
+bayes_range <- data.frame(y=y)
+
+hdi <- coda::HPDinterval(coda::as.mcmc(y), prob=0.95)
+label_x_pos <- hdi[1] + 0.75*(hdi[2]-hdi[1])
+label_y_pos <- 760
+label_text <- paste('95% HDI:', round(hdi[1],2), 'to', round(hdi[2],2), sep=' ')
+
+label_df <- data.frame(x=label_x_pos, y=label_y_pos, text=label_text)
+
+
+s <- svgstring(standalone=FALSE)
+ggplot(bayes_range) + 
+  geom_histogram(aes(y), fill='#30499b', colour='white') +
+  geom_vline(xintercept = hdi[1], linetype='dashed') +
+  geom_vline(xintercept = hdi[2], linetype='dashed') +
+  geom_label(aes(x=x, y=y, label=text), data=label_df) +
+  ggtitle('Bayesian Highest Density Intervals') +
+  theme_bw()
+htmltools::HTML(s())
 
 ```
 
-Bayesian intervals
+
 
 ---
 
@@ -380,7 +398,7 @@ plot_data <- mutate(plot_data, y=dbeta(theta, a, b))
 s <- svgstring(standalone=FALSE)
 ggplot(plot_data, aes(theta, y)) +
   geom_line() +
-  facet_wrap(b~a, scales='free_y',labeller=label_wrap_gen(multi_line=FALSE)) +
+  facet_wrap(a~b, scales='free_y',labeller=label_wrap_gen(multi_line=FALSE)) +
   scale_x_continuous('θ', breaks=c(0,0.25,0.5,0.75,1)) + 
   theme_bw() +
   theme(axis.text=element_blank(),
@@ -682,6 +700,8 @@ class: middle
 ---
 # Metropolis Algorithm Example
 
+--
+
 - 50 Islands
 
 --
@@ -777,7 +797,12 @@ df <- data.frame(index=1:length(visited), visited=visited)
 df %<>% mutate(slice = ifelse(index < 500, 'beginning', ifelse(index > max(index) - 500, 'end','other'))) %>% filter(slice != 'other')
 
 s <- svgstring(standalone = FALSE)
-ggplot(df, aes(index, visited)) + geom_line() + facet_wrap(~slice, scales='free_x') + theme_bw()
+ggplot(df, aes(index, visited)) +
+  geom_line() +
+  facet_wrap(~slice, scales='free_x') +
+  scale_y_continuous('Island Number') +
+  scale_x_continuous('Step Number') +
+  theme_bw() 
 htmltools::HTML(s())
 ```
 
@@ -812,7 +837,12 @@ stages <- c(1, 10, 20, 100, 200, 300, 1000, 10000, nruns)
 islands_frequencies <- frequency_matrix(visited, stages, candidates)
 
 s <- svgstring(standalone = FALSE)
-ggplot(islands_frequencies) + geom_col(aes(island, value)) + facet_wrap(~stage, scales='free_y') + theme_bw()
+ggplot(islands_frequencies) +
+  geom_col(aes(island, value)) +
+  facet_wrap(~stage, scales='free_y') +
+  scale_y_continuous('Visiting proportion') +
+  scale_x_continuous('Step Number') +
+  theme_bw()
 htmltools::HTML(s())
 ```
 
@@ -917,14 +947,120 @@ class: middle, inverse
 
 ---
 
-Hierarchical models?
+```{r echo=FALSE}
+url <- "https://raw.githubusercontent.com/mages/diesunddas/master/Data/ClarkTriangle.csv"
+dat <- read.csv(url)
+options(knitr.kable.NA = '')
+triangle_table <- spread(dat, dev, cum) %>% mutate(AY = factor(AY))
+knitr::kable(triangle_table, format = 'html', format.args=list(big.mark=','), digits=0)
+```
+---
+```{r echo=FALSE}
+s <- svgstring(standalone = FALSE)
+ggplot(dat, aes(dev, cum, colour=factor(AY))) + geom_point() + geom_line() + theme_bw() + scale_x_continuous('Development Period') + scale_y_continuous('Amount') + theme(legend.title=element_blank())
+htmltools::HTML(s())
+```
+
+---
+# The model
+See [here](https://magesblog.com/post/2015-11-10-hierarchical-loss-reserving-with-stan/)
+$$\begin{align}
+CL_{AY,dev} &\sim \mathcal{N}(\mu_{AY, dev}, \sigma^2_{dev})\\
+\mu_{AY,dev} &= ULT_{AY} \cdot G(dev|\omega, \theta)\\
+\sigma_{dev}&=\sigma \sqrt{\mu_{dev}}\\
+ULT_{AY} &\sim \mathcal{N}(\mu_{ult}, \sigma^2_{ult})\\
+G(dev|\omega,\theta) &=1-\exp\left(-\left(\frac{dev}{\theta}\right)^{\omega}\right)
+\end{align}$$
+---
+```{r include=FALSE}
+dat$origin <- dat$AY-min(dat$AY)+1
+dat <- dat[order(dat$dev),]
+# Add future dev years
+nyears <- 12
+newdat <- data.frame(
+  origin=rep(1:10, each=nyears),
+  AY=rep(sort(unique(dat$AY)), each=nyears),  
+  dev=rep(seq(from=6, to=nyears*12-6, by=12), 10)
+)
+newdat <- merge(dat, newdat, all=TRUE)
+newdat <- newdat[order(newdat$dev),]
+start.vals <- c(ult = 5000, omega = 1.4, theta = 45)
+
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores()) 
+mlstanDso <- stan_model(file = "Hierachical_Model_for_Loss_Reserving.stan",
+                        model_name = "MultiLevelGrowthCurve") 
+newdat <- newdat[is.na(newdat$cum),]
+
+mlfit <- sampling(mlstanDso, iter=7000, warmup=2000, 
+                  thin=2, chains=4, 
+                  data = list(N = nrow(dat),
+                              cum=dat$cum,
+                              origin=dat$origin,
+                              n_origin=length(unique(dat$origin)),
+                              dev=dat$dev,
+                              N_mis=nrow(newdat),
+                              origin_mis=newdat$origin,
+                              dev_mis=newdat$dev))
+```
+
+# Stan model output
+
+```{r echo=FALSE, fig.height=10}
+print(mlfit, c("mu_ult", "omega", "theta", "sigma_ult", "sigma"),
+probs=c(0.5, 0.75, 0.975))
+```
 
 ---
 
-Quick recap on triangle based models in general insurance
+# Ultimate loss predictions
+
+```{r echo=FALSE}
+ult <- as.data.frame(rstan::extract(mlfit, paste0("ult[", 1:10, "]")))
+summary(apply(ult, 1, sum))
+```
 
 ---
 
+```{r echo=FALSE}
 
-Reproduce Gesmann's work in a Bayesian way
-https://magesblog.com/post/2015-11-10-hierarchical-loss-reserving-with-stan/
+rstan::traceplot(mlfit, c("mu_ult", "omega", "theta", "sigma_ult", "sigma"))
+```
+
+---
+
+```{r echo=FALSE}
+Y_mean <- rstan::extract(mlfit, "Y_mean")
+Y_mean_cred <- apply(Y_mean$Y_mean, 2, quantile, c(0.025, 0.975)) 
+Y_mean_mean <- apply(Y_mean$Y_mean, 2, mean)
+Y_pred <- rstan::extract(mlfit, "Y_pred")
+Y_pred_cred <- apply(Y_pred$Y_pred, 2, quantile, c(0.025, 0.975)) 
+Y_pred_mean <- apply(Y_pred$Y_pred, 2, mean)
+dat2 <- rbind(dat, newdat)
+dat2$Y_pred_mean <- Y_pred_mean
+dat2$Y_pred_cred5 <- Y_pred_cred[1,]
+dat2$Y_pred_cred95 <- Y_pred_cred[2,]
+
+s <- svgstring(standalone = FALSE)
+ggplot(dat2) +
+  geom_ribbon(aes(x=dev, ymin=Y_pred_cred5, ymax=Y_pred_cred95), fill='lightblue', alpha=0.1) +
+  geom_point(aes(dev, cum)) +
+  geom_line(aes(dev, Y_pred_mean)) + 
+  facet_wrap(~factor(AY)) +
+  theme_bw()
+htmltools::HTML(s())
+```
+
+
+
+
+
+---
+
+# References
+
+- *Doing Bayesian Data Analysis* by John K. Kruschke
+- *Computational Actuarial Science* edited by Arthur Charpentier
+- Markus Gesmann's Blog (https://magesblog.com/)
+- Arthur Charpentier's blog (https://freakonometrics.hypotheses.org/)
