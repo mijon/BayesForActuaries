@@ -1,3 +1,6 @@
 bayestalk_files*
 libs
 *.rds
+.RData
+.Rhistory
+TEMPmodel.txt

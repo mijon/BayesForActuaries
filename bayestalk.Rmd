@@ -1,5 +1,5 @@
 ---
-title: "Modern Bayesian Techniques for Actuaries"
+title: "Introduction to Computational Bayesian Methods for Actuaries"
 subtitle: ""
 author: "Michael Jones"
 date: "10 October 2018"
@@ -153,7 +153,7 @@ Humans naturally think in Bayesian terms which are then 'unlearned' when studyin
 class: middle
 
 .emph_blue[It's self]<br>
-.emph_blue[Documenting]
+.emph_blue[documenting]
 
 ???
 
@@ -215,7 +215,16 @@ class: middle
 ok if conjugate pairs, but otherwise, it's difficult to do without MCMC or other computationally intensive programs.
 
 
+---
 
+class: middle
+
+.emph_blue[It's]<br>
+.emph_blue[weird]
+
+???
+
+It's not what people are used to, and the themes are unfamiliar, though it's gaining traction in social sciences and pharmacology (and election prediction)
 
 ---
 
@@ -345,6 +354,24 @@ class: middle, inverse
 
 class: middle
 
+.emph_blue[The Bayesian]<br>
+.emph_blue[Workflow]
+
+---
+
+class: middle
+
+- Identify your data
+- Define a descriptive model
+- Specify a prior
+- Compute the Posterior
+- Interpret the Posterior
+- Check the model is reasonable
+
+---
+
+class: middle
+
 .emph_dark[Analytically:]<br>
 .emph_blue[Estimating the]<br>
 .emph_blue[Bias of a coin]
@@ -432,13 +459,13 @@ https://mjones.shinyapps.io/coin/
 .pull-left[
 ## If it works
 
-click here
+click [here](#47)
 ]
 
 .pull-right[
 ## If it doesn't work
 
-click here (39)
+click [here](#43)
 ]
 
 ---
@@ -480,6 +507,8 @@ htmltools::HTML(s())
 
 ---
 # Posterior
+
+Another Beta: $Beta(6,8)$
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 theta <- seq(0,1,0.01)
@@ -667,36 +696,40 @@ class: middle
 
 ---
 
-gif of MCMC on 2 dimensions?
-
----
-
-
 class: middle
 
 .emph_blue[Metropolis]
 
 
 ---
-
 # Metropolis Algorithm
+```{r echo=FALSE}
+knitr::include_graphics('metropolis_pics/1_current_place.svg')
+```
 
---
+---
+# Metropolis Algorithm
+```{r echo=FALSE}
+knitr::include_graphics('metropolis_pics/2_choices.svg')
+```
 
-- Choose a candidate jump location
+---
+# Metropolis Algorithm
+```{r echo=FALSE}
+knitr::include_graphics('metropolis_pics/3_chosen.svg')
+```
 
---
+---
+# Metropolis Algorithm
+```{r echo=FALSE}
+knitr::include_graphics('metropolis_pics/4_definitely_move.svg')
+```
 
-- Sample the candidate
-
---
-
-- If candidate is larger than current, go to candidate
-
---
-
-- If candidate is smaller than current, go to candidate with some probability
-
+---
+# Metropolis Algorithm
+```{r echo=FALSE}
+knitr::include_graphics('metropolis_pics/5_maybe_move.svg')
+```
 ---
 # Metropolis Algorithm Example
 
@@ -849,14 +882,10 @@ htmltools::HTML(s())
 
 ---
 
-Why you don't want to roll your own sampler
+class: middle
 
----
-
-- BUGS JAGS and Stan
-- pros and cons of each
-- Mention Gibbs sampling and HMC
-
+.emph_blue[Don't make]<br>
+.emph_blue[your own]
 
 
 ---
@@ -867,74 +896,32 @@ class: middle
 .emph_blue[In practice]
 
 ---
-
-# Linear Regression 
-
-<span style="font-size:200%">
-$$\begin{align}
-y &= \beta_0 + \beta_1 x +\epsilon\\
-\epsilon &\sim \mathcal{N}(0, \sigma^2)
-\end{align}$$
-</span>
---
-
-<span style="font-size:200%">
-$$y \sim \mathcal{N}(\beta_0 + \beta_1 x, \sigma^2)$$
-</span>
----
-
+# Two Coins
 ```{r echo=FALSE}
-# parameters
-npoints <- 100
-outlier_rate <- 0.01
-x_low <- 0
-x_high <-10
-
-beta_0 <- 3
-beta_1 <- 2
-
-# error
-base_sd <- 10
-outlier_sd_multiple <- 3
-
-error <- rnorm(npoints, mean=0, sd=base_sd)
-error[1:round(outlier_rate * npoints)] <- abs(rnorm(round(outlier_rate * npoints), mean=0, sd=outlier_sd_multiple*base_sd))
-
-
-# Fake data generation
-x <- runif(npoints, x_low, x_high)
-y <- beta_0 + beta_1 * x + error
-
-
-data <- data.frame(x,y)
-
-
-linear_plot <-ggplot(data) + geom_point(aes(x,y)) + theme_bw()
-
-s <- svgstring(standalone = FALSE)
-linear_plot
-htmltools::HTML(s())
-
+knitr::include_graphics('two_coins.svg')
 ```
 
 ---
+class: center, middle 
+```{r message=FALSE, warning=FALSE, include=FALSE}
+s <- rep(c(1,2), each=10)
+y <- c(1,1,1,1,1,1,1,0,0,0,1,1,1,1,0,0,0,0,0,0)
+
+two_coin_data <- data.frame(s,y)
+
+source('../DBDA/Jags-Ydich-XnomSsubj-MbernBeta.R')
+mcmcCoda <- genMCMC(data=two_coin_data, numSavedSteps=10000)
+```
+
 
 ```{r echo=FALSE}
-s <- svgstring(standalone = FALSE)
-linear_plot + geom_smooth(aes(x,y), method='lm', se=FALSE) + geom_abline(slope=beta_1, intercept=beta_0)
-htmltools::HTML(s())
+head(mcmcCoda[[1]], n=30)
 ```
----
-
-
-
-class: middle, center
-
-
-![](simple_linear_regression.svg)
 
 ---
-
+```{r echo=FALSE, fig.height=6}
+plotMCMC(mcmcCoda, data=two_coin_data, compVal = NULL, compValDiff = 1.0)
+```
 
 
 ---
@@ -947,11 +934,12 @@ class: middle, inverse
 
 ---
 
+class: middle, center
+
 ```{r echo=FALSE}
-url <- "https://raw.githubusercontent.com/mages/diesunddas/master/Data/ClarkTriangle.csv"
-dat <- read.csv(url)
+dat <- read.csv('ClarkTriangle.csv')
 options(knitr.kable.NA = '')
-triangle_table <- spread(dat, dev, cum) %>% mutate(AY = factor(AY))
+triangle_table <- select(dat, -X) %>% spread(dev, cum) %>% mutate(AY = factor(AY))
 knitr::kable(triangle_table, format = 'html', format.args=list(big.mark=','), digits=0)
 ```
 ---
@@ -1014,23 +1002,21 @@ probs=c(0.5, 0.75, 0.975))
 
 ---
 
-# Ultimate loss predictions
 
 ```{r echo=FALSE}
 ult <- as.data.frame(rstan::extract(mlfit, paste0("ult[", 1:10, "]")))
-summary(apply(ult, 1, sum))
+
+ult <- gather(ult, year, value)
+ult$year <- factor(ult$year, levels=c("ult.1.","ult.2.","ult.3.", "ult.4.", "ult.5.", "ult.6.", "ult.7.", "ult.8.", "ult.9.", "ult.10."))
+
+s <- svgstring(standalone = FALSE)
+ggplot(ult) + geom_density(aes(value), fill='lightblue') + facet_wrap(~year, scale='free') + theme_bw()
+htmltools::HTML(s())
 ```
 
 ---
 
-```{r echo=FALSE}
-
-rstan::traceplot(mlfit, c("mu_ult", "omega", "theta", "sigma_ult", "sigma"))
-```
-
----
-
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 Y_mean <- rstan::extract(mlfit, "Y_mean")
 Y_mean_cred <- apply(Y_mean$Y_mean, 2, quantile, c(0.025, 0.975)) 
 Y_mean_mean <- apply(Y_mean$Y_mean, 2, mean)
@@ -1044,23 +1030,60 @@ dat2$Y_pred_cred95 <- Y_pred_cred[2,]
 
 s <- svgstring(standalone = FALSE)
 ggplot(dat2) +
-  geom_ribbon(aes(x=dev, ymin=Y_pred_cred5, ymax=Y_pred_cred95), fill='lightblue', alpha=0.1) +
+  geom_ribbon(aes(x=dev, ymin=Y_pred_cred5, ymax=Y_pred_cred95), fill='lightblue', alpha=0.5) +
   geom_point(aes(dev, cum)) +
   geom_line(aes(dev, Y_pred_mean)) + 
   facet_wrap(~factor(AY)) +
   theme_bw()
 htmltools::HTML(s())
 ```
+---
 
-
-
+# Shinystan
+Available [here](https://mjones.shinyapps.io/staninsurance/)
 
 
 ---
 
-# References
+class: middle inverse
+
+.emph_dark[Further]<br>
+.emph_dark[Topics]
+
+
+---
+
+class: middle
+
+.emph_blue[Multilevel]<br>
+.emph_blue[Models]
+
+---
+
+class: middle
+
+.emph_blue[Bayesian]<br>
+.emph_blue[Model]<br>
+.emph_blue[Averaging]
+
+---
+
+class: middle
+
+.emph_blue[Causal]<br>
+.emph_blue[Networks]
+
+---
+
+# References and Further Reading
 
 - *Doing Bayesian Data Analysis* by John K. Kruschke
 - *Computational Actuarial Science* edited by Arthur Charpentier
+- *Bayesian Data Analysis (3rd edition)* by Andrew Gelman *et al*
 - Markus Gesmann's Blog (https://magesblog.com/)
 - Arthur Charpentier's blog (https://freakonometrics.hypotheses.org/)
+
+# Interactive
+
+- http://mjones.shinyapps.io/coin/
+- http://mjones.shinyapps.io/staninsurance/
