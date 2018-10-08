@@ -380,7 +380,7 @@ class: middle
 
 ##Parameter
 
-<span style="font-size:200%">
+<span style="font-size:400%">
 $$\theta = P(y_i = \text{heads})$$
 </span>
 
@@ -391,7 +391,7 @@ $$\theta = P(y_i = \text{heads})$$
 
 ### Bernoulli:
 
-<span style="font-size:200%">
+<span style="font-size:400%">
 $$ p(y|\theta) = \theta^y(1 - \theta)^{(1-y)}$$
 </span>
 
@@ -399,7 +399,7 @@ $$ p(y|\theta) = \theta^y(1 - \theta)^{(1-y)}$$
 
 ## Prior
 ### Beta
-<span style="font-size:200%">
+<span style="font-size:400%">
 $$\begin{align}
   P(\theta|a,b) &= \text{beta}(a,b)\\\\
   &=\frac{\theta^{(a-1)}(1-\theta)^{(b-1)}}{B(a,b)}
@@ -443,7 +443,7 @@ htmltools::HTML(s())
 ## Posterior
 ### Another Beta
 
-<span style="font-size:200%">
+<span style="font-size:300%">
 $$\begin{align}
   P(\theta|n_{heads},n_{tails},a,b) &= \text{beta}(a+n_{heads},b+n_{tails})\\\\
   &=\frac{\theta^{(a+n_{heads}-1)}(1-\theta)^{(b+n_{tails}-1)}}{B(a+n_{heads},b+n_{tails})}
