@@ -1,4 +1,3 @@
-bayestalk_files*
 libs
 *.rds
 .RData
