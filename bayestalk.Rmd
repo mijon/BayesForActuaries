@@ -920,7 +920,9 @@ head(mcmcCoda[[1]], n=30)
 
 ---
 ```{r echo=FALSE, fig.height=6}
+s <- svgstring(standalone = FALSE)
 plotMCMC(mcmcCoda, data=two_coin_data, compVal = NULL, compValDiff = 1.0)
+htmltools::HTML(s())
 ```
 
 
